@@ -1,93 +1,219 @@
-// ============================================
-// 1. DATA (Foundation)
-// ============================================
-const recipes = [
-    { id: 1, title: "Classic Spaghetti Carbonara", time: 25, difficulty: "easy", description: "A creamy Italian pasta dish made with eggs, cheese, pancetta, and black pepper.", category: "pasta" },
-    { id: 2, title: "Chicken Tikka Masala", time: 45, difficulty: "medium", description: "Tender chicken pieces in a creamy, spiced tomato sauce.", category: "curry" },
-    { id: 3, title: "Homemade Croissants", time: 180, difficulty: "hard", description: "Buttery, flaky French pastries that require patience.", category: "baking" },
-    { id: 4, title: "Greek Salad", time: 15, difficulty: "easy", description: "Fresh vegetables, feta cheese, and olives tossed in olive oil.", category: "salad" },
-    { id: 5, title: "Beef Wellington", time: 120, difficulty: "hard", description: "Tender beef fillet wrapped in puff pastry.", category: "meat" },
-    { id: 6, title: "Vegetable Stir Fry", time: 20, difficulty: "easy", description: "Colorful mixed vegetables cooked quickly.", category: "vegetarian" },
-    { id: 7, title: "Pad Thai", time: 30, difficulty: "medium", description: "Thai stir-fried rice noodles with shrimp and peanuts.", category: "noodles" },
-    { id: 8, title: "Margherita Pizza", time: 60, difficulty: "medium", description: "Classic Italian pizza with fresh mozzarella and basil.", category: "pizza" }
-];
+const RecipeApp = (() => {
+    // --- PRIVATE DATA ---
+    const recipes = [
+        {
+            id: 1,
+            title: "Classic Spaghetti Carbonara",
+            time: 25,
+            difficulty: "easy",
+            description: "Creamy Italian pasta dish with pancetta.",
+            ingredients: ["200g Spaghetti", "100g Pancetta", "2 Large Eggs", "50g Pecorino Cheese", "Black Pepper"],
+            steps: [
+                "Boil a large pot of salted water.",
+                {
+                    text: "Prepare the creamy base",
+                    substeps: ["Whisk eggs in a small bowl.", "Mix in grated cheese and pepper."]
+                },
+                "Fry pancetta until golden brown.",
+                "Combine pasta and sauce off the heat to avoid scrambling eggs."
+            ]
+        },
+        {
+            id: 2,
+            title: "Chicken Tikka Masala",
+            time: 45,
+            difficulty: "medium",
+            description: "Spiced chicken in a tomato-cream sauce.",
+            ingredients: ["Chicken Breast", "Yogurt", "Garam Masala", "Canned Tomatoes", "Heavy Cream", "Garlic & Ginger"],
+            steps: [
+                "Marinate chicken in yogurt and spices for 30 mins.",
+                "Grill chicken until charred.",
+                {
+                    text: "Simmer the sauce",
+                    substeps: ["Sauté onions and ginger.", "Add tomatoes and simmer.", "Stir in heavy cream at the end."]
+                }
+            ]
+        },
+        {
+            id: 3,
+            title: "Homemade Croissants",
+            time: 180,
+            difficulty: "hard",
+            description: "Flaky, buttery French pastry.",
+            ingredients: ["Bread Flour", "Active Dry Yeast", "Sugar", "Salt", "Unsalted Butter (lots)", "Milk"],
+            steps: [
+                "Mix dough and chill overnight.",
+                {
+                    text: "The Lamination Process",
+                    substeps: [
+                        "Create a butter block.",
+                        {
+                            text: "Folding (The Turns)",
+                            substeps: ["First fold (Letter fold).", "Second fold after 30 min chill.", "Third fold."]
+                        }
+                    ]
+                },
+                "Shape into triangles and roll.",
+                "Proof until doubled in size and bake."
+            ]
+        },
+        {
+            id: 4,
+            title: "Greek Salad",
+            time: 15,
+            difficulty: "easy",
+            description: "Fresh and crisp Mediterranean salad.",
+            ingredients: ["Cucumber", "Tomatoes", "Feta Cheese", "Kalamata Olives", "Red Onion", "Olive Oil"],
+            steps: ["Chop all vegetables into chunks.", "Add olives and feta slices.", "Drizzle with olive oil and sprinkle oregano."]
+        },
+        {
+            id: 5,
+            title: "Beef Wellington",
+            time: 120,
+            difficulty: "hard",
+            description: "Luxury beef fillet in pastry.",
+            ingredients: ["Beef Fillet", "Puff Pastry", "Mushroom Duxelles", "Prosciutto", "Egg Wash"],
+            steps: [
+                "Sear the beef on all sides.",
+                "Spread mushroom duxelles over prosciutto.",
+                "Wrap the beef in the prosciutto/mushroom layer.",
+                "Encase in puff pastry and bake until golden."
+            ]
+        },
+        {
+            id: 6,
+            title: "Vegetable Stir Fry",
+            time: 20,
+            difficulty: "easy",
+            description: "Quick and healthy veggies.",
+            ingredients: ["Broccoli", "Carrots", "Bell Peppers", "Soy Sauce", "Sesame Oil", "Ginger"],
+            steps: ["Heat oil in a wok.", "Add hard veggies first (carrots).", "Toss in peppers and sauce. Stir fry for 5 mins."]
+        },
+        {
+            id: 7,
+            title: "Pad Thai",
+            time: 30,
+            difficulty: "medium",
+            description: "Classic Thai street food noodles.",
+            ingredients: ["Rice Noodles", "Shrimp", "Tamarind Paste", "Peanuts", "Bean Sprouts", "Eggs"],
+            steps: [
+                "Soak noodles in warm water.",
+                "Sauté shrimp and scrambled eggs.",
+                "Add noodles and tamarind sauce. Toss with peanuts."
+            ]
+        },
+        {
+            id: 8,
+            title: "Margherita Pizza",
+            time: 60,
+            difficulty: "medium",
+            description: "Simple basil and mozzarella pizza.",
+            ingredients: ["Pizza Dough", "San Marzano Tomatoes", "Fresh Mozzarella", "Fresh Basil", "Olive Oil"],
+            steps: [
+                "Stretch dough into a circle.",
+                "Spread crushed tomatoes.",
+                "Add cheese and bake at max temperature.",
+                "Finish with fresh basil leaves."
+            ]
+        }
+    ];
 
-// ============================================
-// 2. STATE MANAGEMENT
-// ============================================
-let currentFilter = 'all';
-let currentSort = 'none';
+    // --- PRIVATE STATE ---
+    let currentFilter = 'all';
+    let currentSort = 'none';
+    const container = document.querySelector('#recipe-container');
 
-// ============================================
-// 3. DOM REFERENCES
-// ============================================
-const recipeContainer = document.querySelector('#recipe-container');
-const filterButtons = document.querySelectorAll('.filter-btn');
-const sortButtons = document.querySelectorAll('.sort-btn');
+    // --- RECURSIVE FUNCTION ---
+    const renderSteps = (steps) => {
+        return `<ol class="steps-list">
+            ${steps.map(step => {
+            if (typeof step === 'string') {
+                return `<li>${step}</li>`;
+            } else {
+                return `<li>
+                        <strong>${step.text}</strong>
+                        <ul class="substep-list">
+                            ${renderSteps(step.substeps)}
+                        </ul>
+                    </li>`;
+            }
+        }).join('')}
+        </ol>`;
+    };
 
-// ============================================
-// 4. PURE FILTER & SORT FUNCTIONS
-// ============================================
-const applyFilter = (data, filterType) => {
-    if (filterType === 'all') return data;
-    if (filterType === 'quick') return data.filter(r => r.time < 30);
-    return data.filter(r => r.difficulty === filterType);
-};
-
-const applySort = (data, sortType) => {
-    const copy = [...data]; // Pure: do not mutate original
-    if (sortType === 'name') return copy.sort((a, b) => a.title.localeCompare(b.title));
-    if (sortType === 'time') return copy.sort((a, b) => a.time - b.time);
-    return copy;
-};
-
-// ============================================
-// 5. RENDER FUNCTIONS
-// ============================================
-const createRecipeCard = (recipe) => `
-    <div class="recipe-card" data-id="${recipe.id}">
-        <h3>${recipe.title}</h3>
-        <div class="recipe-meta">
-            <span>⏱️ ${recipe.time} min</span>
-            <span class="difficulty ${recipe.difficulty}">${recipe.difficulty}</span>
+    // --- RENDERING LOGIC ---
+    const createCard = (recipe) => `
+        <div class="recipe-card" data-id="${recipe.id}">
+            <h3>${recipe.title}</h3>
+            <div class="recipe-meta">
+                <span>⏱️ ${recipe.time} min</span>
+                <span class="difficulty ${recipe.difficulty}">${recipe.difficulty}</span>
+            </div>
+            <p>${recipe.description}</p>
+            <div class="card-controls">
+                <button class="toggle-btn" data-type="steps">Show Steps</button>
+                <button class="toggle-btn" data-type="ingredients">Show Ingredients</button>
+            </div>
+            <div class="steps-container">${renderSteps(recipe.steps)}</div>
+            <div class="ingredients-container">
+                <ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>
+            </div>
         </div>
-        <p>${recipe.description}</p>
-    </div>
-`;
+    `;
 
-const updateDisplay = () => {
-    // Pipeline: Data -> Filter -> Sort -> Render
-    let filtered = applyFilter(recipes, currentFilter);
-    let sorted = applySort(filtered, currentSort);
-    
-    recipeContainer.innerHTML = sorted.map(createRecipeCard).join('');
-    
-    // Update button visual state
-    filterButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === currentFilter));
-    sortButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === currentSort));
-    
-    console.log(`Displaying ${sorted.length} recipes (Filter: ${currentFilter}, Sort: ${currentSort})`);
-};
+    const updateDisplay = () => {
+        let result = currentFilter === 'all' ? recipes :
+            currentFilter === 'quick' ? recipes.filter(r => r.time < 30) :
+                recipes.filter(r => r.difficulty === currentFilter);
 
-// ============================================
-// 6. EVENT LISTENERS & INIT
-// ============================================
-const setupEventListeners = () => {
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentFilter = btn.dataset.filter;
-            updateDisplay();
+        const sorted = [...result];
+        if (currentSort === 'name') sorted.sort((a, b) => a.title.localeCompare(b.title));
+        if (currentSort === 'time') sorted.sort((a, b) => a.time - b.time);
+
+        container.innerHTML = sorted.map(createCard).join('');
+    };
+
+    // --- EVENT DELEGATION ---
+    const setupListeners = () => {
+        // Toggle Logic (Delegation)
+        container.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('toggle-btn')) return;
+            const type = e.target.dataset.type;
+            const parent = e.target.closest('.recipe-card');
+            const targetDiv = parent.querySelector(`.${type}-container`);
+
+            const isVisible = targetDiv.classList.toggle('visible');
+            e.target.textContent = isVisible ? `Hide ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Show ${type.charAt(0).toUpperCase() + type.slice(1)}`;
         });
-    });
 
-    sortButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentSort = btn.dataset.sort;
-            updateDisplay();
+        // Filter/Sort Logic
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentFilter = e.target.dataset.filter;
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                updateDisplay();
+            });
         });
-    });
-};
 
-// Initialize App
-setupEventListeners();
-updateDisplay();
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentSort = e.target.dataset.sort;
+                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                updateDisplay();
+            });
+        });
+    };
+
+    // --- PUBLIC API ---
+    return {
+        init: () => {
+            setupListeners();
+            updateDisplay();
+            console.log("RecipeApp Part 3 Ready!");
+        }
+    };
+})();
+
+RecipeApp.init();
