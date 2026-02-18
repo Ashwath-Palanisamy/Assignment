@@ -1,5 +1,9 @@
 const RecipeApp = (() => {
-    // --- PRIVATE DATA ---
+    'use strict';
+
+    // ============================================
+    // 1. PRIVATE DATA
+    // ============================================
     const recipes = [
         {
             id: 1,
@@ -118,100 +122,186 @@ const RecipeApp = (() => {
         }
     ];
 
-    // --- PRIVATE STATE ---
+    // ============================================
+    // 2. PRIVATE STATE
+    // ============================================
     let currentFilter = 'all';
     let currentSort = 'none';
-    const container = document.querySelector('#recipe-container');
+    let searchQuery = '';
+    let debounceTimer;
+    
+    // Persist Favorites with localStorage
+    let favorites = JSON.parse(localStorage.getItem('recipeFavorites')) || [];
 
-    // --- RECURSIVE FUNCTION ---
+    // DOM References
+    const container = document.querySelector('#recipe-container');
+    const searchInput = document.querySelector('#search-input');
+    const clearSearchBtn = document.querySelector('#clear-search');
+    const recipeCountDisplay = document.querySelector('#recipe-count');
+
+    // ============================================
+    // 3. UI HELPERS & LOGIC
+    // ============================================
+    
+    const saveToStorage = () => {
+        localStorage.setItem('recipeFavorites', JSON.stringify(favorites));
+    };
+
+    // Recursive function for nested steps
     const renderSteps = (steps) => {
         return `<ol class="steps-list">
             ${steps.map(step => {
-            if (typeof step === 'string') {
-                return `<li>${step}</li>`;
-            } else {
-                return `<li>
+                if (typeof step === 'string') {
+                    return `<li>${step}</li>`;
+                } else {
+                    return `<li>
                         <strong>${step.text}</strong>
                         <ul class="substep-list">
                             ${renderSteps(step.substeps)}
                         </ul>
                     </li>`;
-            }
-        }).join('')}
+                }
+            }).join('')}
         </ol>`;
     };
 
-    // --- RENDERING LOGIC ---
-    const createCard = (recipe) => `
-        <div class="recipe-card" data-id="${recipe.id}">
-            <h3>${recipe.title}</h3>
-            <div class="recipe-meta">
-                <span>⏱️ ${recipe.time} min</span>
-                <span class="difficulty ${recipe.difficulty}">${recipe.difficulty}</span>
+    const createCard = (recipe) => {
+        const isFav = favorites.includes(recipe.id);
+        return `
+            <div class="recipe-card" data-id="${recipe.id}">
+                <button class="favorite-btn ${isFav ? 'favorited' : ''}" data-id="${recipe.id}">
+                    ${isFav ? '❤️' : '🤍'}
+                </button>
+                <h3>${recipe.title}</h3>
+                <div class="recipe-meta">
+                    <span>⏱️ ${recipe.time} min</span>
+                    <span class="difficulty ${recipe.difficulty}">${recipe.difficulty}</span>
+                </div>
+                <p>${recipe.description}</p>
+                <div class="card-controls">
+                    <button class="toggle-btn" data-type="steps">Show Steps</button>
+                    <button class="toggle-btn" data-type="ingredients">Show Ingredients</button>
+                </div>
+                <div class="steps-container">${renderSteps(recipe.steps)}</div>
+                <div class="ingredients-container">
+                    <ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>
+                </div>
             </div>
-            <p>${recipe.description}</p>
-            <div class="card-controls">
-                <button class="toggle-btn" data-type="steps">Show Steps</button>
-                <button class="toggle-btn" data-type="ingredients">Show Ingredients</button>
-            </div>
-            <div class="steps-container">${renderSteps(recipe.steps)}</div>
-            <div class="ingredients-container">
-                <ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>
-            </div>
-        </div>
-    `;
+        `;
+    };
 
     const updateDisplay = () => {
-        let result = currentFilter === 'all' ? recipes :
-            currentFilter === 'quick' ? recipes.filter(r => r.time < 30) :
-                recipes.filter(r => r.difficulty === currentFilter);
+        // Pipeline: Filter -> Search -> Sort
+        let result = recipes;
 
+        // 1. Search Filter
+        if (searchQuery) {
+            const lowQuery = searchQuery.toLowerCase().trim();
+            result = result.filter(r => 
+                r.title.toLowerCase().includes(lowQuery) || 
+                r.ingredients.some(ing => ing.toLowerCase().includes(lowQuery)) ||
+                r.description.toLowerCase().includes(lowQuery)
+            );
+        }
+
+        // 2. Difficulty/Quick/Favorites Filter
+        if (currentFilter === 'favorites') {
+            result = result.filter(r => favorites.includes(r.id));
+        } else if (currentFilter === 'quick') {
+            result = result.filter(r => r.time < 30);
+        } else if (currentFilter !== 'all') {
+            result = result.filter(r => r.difficulty === currentFilter);
+        }
+
+        // 3. Sorting
         const sorted = [...result];
         if (currentSort === 'name') sorted.sort((a, b) => a.title.localeCompare(b.title));
         if (currentSort === 'time') sorted.sort((a, b) => a.time - b.time);
 
+        // 4. Update Counter
+        if (recipeCountDisplay) {
+            recipeCountDisplay.textContent = `Showing ${sorted.length} of ${recipes.length} recipes`;
+        }
+
         container.innerHTML = sorted.map(createCard).join('');
     };
 
-    // --- EVENT DELEGATION ---
+    // ============================================
+    // 4. EVENT HANDLERS
+    // ============================================
     const setupListeners = () => {
-        // Toggle Logic (Delegation)
-        container.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('toggle-btn')) return;
-            const type = e.target.dataset.type;
-            const parent = e.target.closest('.recipe-card');
-            const targetDiv = parent.querySelector(`.${type}-container`);
-
-            const isVisible = targetDiv.classList.toggle('visible');
-            e.target.textContent = isVisible ? `Hide ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Show ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-        });
-
-        // Filter/Sort Logic
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                currentFilter = e.target.dataset.filter;
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
+        // Search Input with Debouncing
+        // 
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            clearSearchBtn.style.display = val ? 'block' : 'none';
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchQuery = val;
                 updateDisplay();
-            });
+            }, 300);
         });
 
-        document.querySelectorAll('.sort-btn').forEach(btn => {
+        // Clear Search
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchQuery = '';
+            clearSearchBtn.style.display = 'none';
+            updateDisplay();
+        });
+
+        // Event Delegation for Toggles and Favorites
+        container.addEventListener('click', (e) => {
+            // Favorite Button Logic
+            const favBtn = e.target.closest('.favorite-btn');
+            if (favBtn) {
+                const id = parseInt(favBtn.dataset.id);
+                if (favorites.includes(id)) {
+                    favorites = favorites.filter(favId => favId !== id);
+                } else {
+                    favorites.push(id);
+                }
+                saveToStorage();
+                updateDisplay();
+                return;
+            }
+
+            // Toggle Content Logic
+            if (e.target.classList.contains('toggle-btn')) {
+                const type = e.target.dataset.type;
+                const parent = e.target.closest('.recipe-card');
+                const targetDiv = parent.querySelector(`.${type}-container`);
+                const isVisible = targetDiv.classList.toggle('visible');
+                e.target.textContent = isVisible ? `Hide ${type.charAt(0).toUpperCase() + type.slice(1)}` : `Show ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            }
+        });
+
+        // Filter/Sort Buttons
+        document.querySelectorAll('.filter-btn, .sort-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                currentSort = e.target.dataset.sort;
-                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                if (e.target.dataset.filter) {
+                    currentFilter = e.target.dataset.filter;
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                }
+                if (e.target.dataset.sort) {
+                    currentSort = e.target.dataset.sort;
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                }
                 e.target.classList.add('active');
                 updateDisplay();
             });
         });
     };
 
-    // --- PUBLIC API ---
+    // ============================================
+    // 5. PUBLIC API
+    // ============================================
     return {
         init: () => {
             setupListeners();
             updateDisplay();
-            console.log("RecipeApp Part 3 Ready!");
+            console.log("✅ RecipeApp Part 4 Fully Loaded & Persistent!");
         }
     };
 })();
